@@ -103,22 +103,6 @@ namespace findkaninen
         {
             var phrase = subjectphrase.Text;
             await Task.Run(() => { start(phrase); });
-            //string[] dict = initFindAnagrams();
-
-            ////find ok words
-            ////remove whitespace and duplicates and all words that has letters not in subject or more of one letter than in subject
-            //var oklistwords = dict.Select(w => Regex.Replace(w, @"\s", "")).GroupBy(w=>w).Where(g => charsOk(g.Key)).Select(g=> g.Key);
-
-            ////lav alfabetiseret liste
-            //alfabetiseretListe = lavAlfabetiseretOrdbog(oklistwords);
-
-
-            //getAnagrams(alfabetiseretListe.Keys.ToArray(), 3, new List<string>());
-
-            //anagramgrid.ItemsSource = anagrammer.OrderByDescending(a => a.anagram);
-
-
-            //sekunder.Content = (DateTime.Now - startTime).Seconds;
         }
 
         void start(string phrase)
