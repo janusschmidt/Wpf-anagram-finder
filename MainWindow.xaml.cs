@@ -43,24 +43,18 @@ namespace findkaninen
             InitializeComponent();
         }
 
-        bool charsOk(IEnumerable<string> str)
+        List<char> charsOk(string str, List<char> okchars)
         {
-            return charsOk(string.Join("", str));
+            return charsOk(str.ToCharArray(), okchars);
         }
 
-        bool charsOk(string str)
+        List<char> charsOk(char[] charsToCheck, List<char> okchars)
         {
-            return charsOk(str.ToCharArray());
-        }
-
-        bool charsOk(char[] charsToCheck)
-        {
-            bool res = true;
-            var okcharstmp = OKchars.ToList();
+            var okcharstmp = okchars.ToList();
 
             if (charsToCheck.Length == 0)
             {
-                return false;
+                return null;
             }
 
             foreach (var c in charsToCheck)
@@ -76,11 +70,11 @@ namespace findkaninen
                 }
                 else
                 {
-                    res = false;
-                    break;
+                    return null;
                 }
             }
-            return res;
+
+            return okcharstmp;
         }
 
         string CalculateMD5Hash(string input)
@@ -111,13 +105,13 @@ namespace findkaninen
 
             //find ok words
             //remove whitespace and duplicates and all words that has letters not in subject or more of one letter than in subject
-            var oklistwords = dict.Select(w => Regex.Replace(w, @"\s", "")).GroupBy(w => w).Where(g => charsOk(g.Key)).Select(g => g.Key);
+            var oklistwords = dict.Select(w => Regex.Replace(w, @"\s", "")).GroupBy(w => w).Where(g => charsOk(g.Key, OKchars) != null).Select(g => g.Key);
 
             //lav alfabetiseret liste
             alfabetiseretListe = lavAlfabetiseretOrdbog(oklistwords);
 
 
-            getAnagrams(alfabetiseretListe.Keys.ToArray(), 3, new List<string>());
+            getAnagrams(alfabetiseretListe.Keys.ToArray(), 3, new List<string>(), OKchars);
 
             Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() => { anagramgrid.ItemsSource = anagrammer.OrderByDescending(a => a.anagram); }));
         }
@@ -204,7 +198,7 @@ namespace findkaninen
             }
         }
 
-        void getAnagrams(string[] dictKeys, int worddepth, List<string> ordDerSkalVæreMedIAnagram, int ordDerSkalVæreMedLength = 0, int dictStartPos = 0)
+        void getAnagrams(string[] dictKeys, int worddepth, List<string> ordDerSkalVæreMedIAnagram, List<char> tmpOkChars, int ordDerSkalVæreMedLength = 0, int dictStartPos = 0)
         {
             for (var i = dictStartPos; i < dictKeys.Length; i++)
             {
@@ -215,7 +209,8 @@ namespace findkaninen
                     var anagram = new List<string>(ordDerSkalVæreMedIAnagram);
                     anagram.Add(ord);
 
-                    if (charsOk(anagram))
+                    var newtmpOkChars = charsOk(ord, tmpOkChars);
+                    if (newtmpOkChars!=null)
                     {
                         if (anagramLength == noOfCharsInAnagram)
                         {
@@ -227,7 +222,7 @@ namespace findkaninen
                         //hvis de ord der forsøges med nu ikke er for lange
                         else if (worddepth > 1)
                         {
-                            getAnagrams(dictKeys, worddepth - 1, anagram, anagramLength, i);
+                            getAnagrams(dictKeys, worddepth - 1, anagram, newtmpOkChars, anagramLength, i);
                         }
                     }
                 }
