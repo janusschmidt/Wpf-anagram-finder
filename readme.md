@@ -10,9 +10,10 @@ The algorithm is basically like this:
  - Read dictionary
  - Remove all bad whitespace and redundant entries.
  - Remove words that has too many letters of some kind, as they can never be part of the anagram.
- - Alfabetize all words. By that i mean group and sort by chars in word. That way we only have to find a one combination for each group of 1 word partial anagrams.
+ - Alfabetize all words. By that i mean group and sort by chars in word. That way we only have to find one combination for each group of one word partial anagrams.
  - Use recursion to check for anagrams.
- - When an anagram is found permute all combinations of the words in the anagram, then compute all combinations by looking up alfabetized words in the alfabetizedWordToGroup dictionary.
+ - As anagrams are commutative, the algorithm is optimized to leave out looking for permutations of word combinations, and instead supplying all permutations when a match is found.
+ - When an anagram is found permute all combinations of the words in the anagram, then further expand the results by computing all combinations by looking up alfabetized words in the alfabetizedWordToGroup dictionary.
  - Finally check if anagram has the right md5 hash (As this project is the solution to a challenge where a certain anagram should be found)
 
 
