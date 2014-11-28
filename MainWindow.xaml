@@ -1,4 +1,4 @@
-﻿<Window x:Class="findkaninen.MainWindow"
+﻿<Window x:Class="Findkaninen.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Find kaninen - anagrammer" Height="968.913" Width="974.186">

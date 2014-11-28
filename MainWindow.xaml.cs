@@ -1,54 +1,41 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Windows.Threading;
-
-namespace findkaninen
+﻿namespace Findkaninen
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Security.Cryptography;
+    using System.Text;
+    using System.Text.RegularExpressions;
+    using System.Threading.Tasks;
+    using System.Windows;
+    using System.Windows.Threading;
+    using Findkaninen.Containers;
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
-        public class Anagram
-        {
-            public string anagram { get; set; }
-            public string md5 { get; set; }
-        }
-
-        public List<Anagram> anagrammer = new List<Anagram>();
-        int noOfCharsInAnagram;
-        List<char> OKchars;
-        Dictionary<string, List<string>> alfabetiseretListe;
-        int totalFoundAnagrams;
-        DateTime startTime;
+        private List<Anagram> anagrammer = new List<Anagram>();
+        private int noOfCharsInAnagram;
+        private List<char> allowedchars;
+        private Dictionary<string, List<string>> alfabetiseretListe;
+        private int totalFoundAnagrams;
+        private DateTime startTime;
 
         public MainWindow()
         {
-            InitializeComponent();
+            this.InitializeComponent();
         }
 
-        List<char> charsOk(string str, List<char> okchars)
+        private static List<char> CharsOk(string str, List<char> okchars)
         {
-            return charsOk(str.ToCharArray(), okchars);
+            return CharsOk(str.ToCharArray(), okchars);
         }
 
-        List<char> charsOk(char[] charsToCheck, List<char> okchars)
+        private static List<char> CharsOk(char[] charsToCheck, List<char> okchars)
         {
             var okcharstmp = okchars.ToList();
 
@@ -77,7 +64,7 @@ namespace findkaninen
             return okcharstmp;
         }
 
-        string CalculateMD5Hash(string input)
+        private static string CalculateMD5Hash(string input)
         {
             // step 1, calculate MD5 hash from input
             MD5 md5 = System.Security.Cryptography.MD5.Create();
@@ -90,46 +77,43 @@ namespace findkaninen
             {
                 sb.Append(hash[i].ToString("X2"));
             }
+
             return sb.ToString().ToLower();
         }
 
-        async void Button_Click(object sender, RoutedEventArgs e)
+        private async void Button_Click(object sender, RoutedEventArgs e)
         {
             var phrase = subjectphrase.Text;
-            await Task.Run(() => { start(phrase); });
+            await Task.Run(() => { Start(phrase); });
         }
 
-        void start(string phrase)
+        private void Start(string phrase)
         {
-            string[] dict = initFindAnagrams(phrase);
+            string[] dict = this.InitFindAnagrams(phrase);
 
-            //find ok words
-            //remove whitespace and duplicates and all words that has letters not in subject or more of one letter than in subject
-            var oklistwords = dict.Select(w => Regex.Replace(w, @"\s", "")).GroupBy(w => w).Where(g => charsOk(g.Key, OKchars) != null).Select(g => g.Key);
+            //find ok words. remove whitespace and duplicates and all words that has letters not in subject or more of one letter than in subject.
+            var oklistwords = dict.Select(w => Regex.Replace(w, @"\s", string.Empty)).GroupBy(w => w).Where(g => CharsOk(g.Key, this.allowedchars) != null).Select(g => g.Key);
 
             //lav alfabetiseret liste
-            alfabetiseretListe = lavAlfabetiseretOrdbog(oklistwords);
+            this.alfabetiseretListe = this.LavAlfabetiseretOrdbog(oklistwords);
 
+            this.GetAnagrams(this.alfabetiseretListe.Keys.ToArray(), 3, new List<string>(), this.allowedchars);
 
-            getAnagrams(alfabetiseretListe.Keys.ToArray(), 3, new List<string>(), OKchars);
-
-            Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() => { anagramgrid.ItemsSource = anagrammer.OrderByDescending(a => a.anagram); }));
+            Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() => { anagramgrid.ItemsSource = anagrammer.OrderByDescending(a => a.Text); }));
         }
 
-        private string[] initFindAnagrams(string phrase)
+        private string[] InitFindAnagrams(string phrase)
         {
-            startTime = DateTime.Now;
-            totalFoundAnagrams = 0;
-            anagrammer.Clear();
+            this.startTime = DateTime.Now;
+            this.totalFoundAnagrams = 0;
+            this.anagrammer.Clear();
             Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() => { anagramgrid.ItemsSource = null; }));
-
-
-            OKchars = phrase.Replace(" ", "").ToCharArray().ToList();
-            noOfCharsInAnagram = OKchars.Count;
+            this.allowedchars = phrase.Replace(" ", string.Empty).ToCharArray().ToList();
+            this.noOfCharsInAnagram = this.allowedchars.Count;
             return File.ReadAllLines("wordlist.txt");
         }
 
-        Dictionary<string, List<string>> lavAlfabetiseretOrdbog(IEnumerable<string> oklistwords)
+        private Dictionary<string, List<string>> LavAlfabetiseretOrdbog(IEnumerable<string> oklistwords)
         {
             var alfabetiseretListe = new Dictionary<string, List<string>>();
             foreach (var ord in oklistwords)
@@ -144,52 +128,51 @@ namespace findkaninen
                     alfabetiseretListe.Add(alfebetiseretOrd, new List<string> { ord });
                 }
             }
+
             return alfabetiseretListe;
         }
 
-        private IEnumerable<IEnumerable<string>> convertAlfabetizedAnagramToRealAnagrams(IEnumerable<string> anagramIN)
+        private IEnumerable<IEnumerable<string>> ConvertAlfabetizedAnagramToRealAnagrams(IEnumerable<string> anagramIN)
         {
             var anagram = new Stack<string>(anagramIN);
 
             if (anagram.Count > 0)
             {
                 var word = anagram.Pop();
-                var alphabetizisedEquivalents = alfabetiseretListe[word];
+                var alphabetizisedEquivalents = this.alfabetiseretListe[word];
                 if (anagram.Count == 0)
                 {
-                    foreach (var eqWord in alphabetizisedEquivalents)
+                    foreach (var w in alphabetizisedEquivalents)
                     {
-                        yield return new[] { eqWord };
+                        yield return new[] { w };
                     }
                 }
                 else
                 {
-                    foreach (var subAnagrams in convertAlfabetizedAnagramToRealAnagrams(anagram))
+                    foreach (var subAnagrams in this.ConvertAlfabetizedAnagramToRealAnagrams(anagram))
                     {
-                        foreach (var eqWord in alphabetizisedEquivalents)
+                        foreach (var w in alphabetizisedEquivalents)
                         {
-                            yield return subAnagrams.Concat(new[] { eqWord });
+                            yield return subAnagrams.Concat(new[] { w });
                         }
                     }
                 }
             }
-
         }
 
-        private IEnumerable<List<string>> permute(List<string> anagram)
+        private IEnumerable<List<string>> Permute(List<string> anagram)
         {
             if (anagram.Count == 1)
             {
                 yield return new List<string>(anagram);
             }
-
             else
             {
                 foreach (var word in anagram)
                 {
                     var subanagram = new List<string>(anagram);
                     subanagram.Remove(word);
-                    foreach (var subperm in permute(subanagram))
+                    foreach (var subperm in this.Permute(subanagram))
                     {
                         subperm.Add(word);
                         yield return subperm;
@@ -198,55 +181,57 @@ namespace findkaninen
             }
         }
 
-        void getAnagrams(string[] dictKeys, int worddepth, List<string> ordDerSkalVæreMedIAnagram, List<char> tmpOkChars, int ordDerSkalVæreMedLength = 0, int dictStartPos = 0)
+        private void GetAnagrams(string[] dictKeys, int worddepth, List<string> ordDerSkalVæreMedIAnagram, List<char> tmpOkChars, int ordDerSkalVæreMedLength = 0, int dictStartPos = 0)
         {
             for (var i = dictStartPos; i < dictKeys.Length; i++)
             {
                 var ord = dictKeys[i];
                 var anagramLength = ordDerSkalVæreMedLength + ord.Length;
-                if ((worddepth == 1 && anagramLength == noOfCharsInAnagram) || (worddepth > 1 && anagramLength <= noOfCharsInAnagram))
+
+                //tjek om det er et anagram ellers
+                //forsøg at kombinere med flere ord via rekursion, hvis de ord der forsøges med nu ikke er for lange
+                if ((worddepth == 1 && anagramLength == this.noOfCharsInAnagram) || (worddepth > 1 && anagramLength <= this.noOfCharsInAnagram))
                 {
                     var anagram = new List<string>(ordDerSkalVæreMedIAnagram);
                     anagram.Add(ord);
 
-                    var newtmpOkChars = charsOk(ord, tmpOkChars);
-                    if (newtmpOkChars!=null)
+                    var newtmpOkChars = CharsOk(ord, tmpOkChars);
+                    if (newtmpOkChars != null)
                     {
-                        if (anagramLength == noOfCharsInAnagram)
+                        if (anagramLength == this.noOfCharsInAnagram)
                         {
-                            IEnumerable<IEnumerable<string>> permutationer = permute(anagram);
-                            var anagrams = permutationer.SelectMany(a => convertAlfabetizedAnagramToRealAnagrams(a));
-                            anagramFound(anagrams);
+                            IEnumerable<IEnumerable<string>> permutationer = this.Permute(anagram);
+                            var anagrams = permutationer.SelectMany(a => this.ConvertAlfabetizedAnagramToRealAnagrams(a));
+                            this.AnagramFound(anagrams);
                         }
-                        //forsøg at kombinere med flere ord via rekursion, 
-                        //hvis de ord der forsøges med nu ikke er for lange
                         else if (worddepth > 1)
                         {
-                            getAnagrams(dictKeys, worddepth - 1, anagram, newtmpOkChars, anagramLength, i);
+                            this.GetAnagrams(dictKeys, worddepth - 1, anagram, newtmpOkChars, anagramLength, i);
                         }
                     }
                 }
             }
         }
 
-        void anagramFound(IEnumerable<IEnumerable<string>> anagrams)
+        private void AnagramFound(IEnumerable<IEnumerable<string>> anagrams)
         {
-            var anagramsAsStrings = anagrams.Select(a => String.Join(" ", a));
-            var angramsAndMd5 = anagramsAsStrings.Select(a => new Anagram { anagram = a, md5 = CalculateMD5Hash(a) });
-            anagrammer.AddRange(angramsAndMd5);
-            totalFoundAnagrams += anagrams.Count();
-            Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() =>
-            {
-                antalAnagrammer.Content = totalFoundAnagrams;
-                sekunder.Content = (DateTime.Now - startTime).Seconds;
-            }));
-
+            var anagramsAsStrings = anagrams.Select(a => string.Join(" ", a));
+            var angramsAndMd5 = anagramsAsStrings.Select(a => new Anagram { Text = a, Md5 = CalculateMD5Hash(a) });
+            this.anagrammer.AddRange(angramsAndMd5);
+            this.totalFoundAnagrams += anagrams.Count();
+            Dispatcher.Invoke(
+                DispatcherPriority.Normal, 
+                new Action(() => 
+                {
+                    antalAnagrammer.Content = totalFoundAnagrams;
+                    sekunder.Content = (DateTime.Now - startTime).Seconds;
+                }));
 
             foreach (var anagram in angramsAndMd5)
             {
-                if (anagram.md5 == "4624d200580677270a54ccff86b9610e")
+                if (anagram.Md5 == "4624d200580677270a54ccff86b9610e")
                 {
-                    Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() => { ResultatAnagram.Content = anagram.anagram; }));
+                    Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() => { ResultatAnagram.Content = anagram.Text; }));
                 }
             }
         }
