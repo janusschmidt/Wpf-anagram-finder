@@ -1,4 +1,6 @@
-﻿namespace Findkaninen
+﻿using System.Diagnostics;
+
+namespace Findkaninen
 {
     using System;
     using System.Collections;
@@ -91,13 +93,23 @@
         {
             string[] dict = this.InitFindAnagrams(phrase);
 
-            //find ok words. remove whitespace and duplicates and all words that has letters not in subject or more of one letter than in subject.
+            var sw = new Stopwatch();
+            sw.Start();
             var oklistwords = dict.Select(w => Regex.Replace(w, @"\s", string.Empty)).GroupBy(w => w).Where(g => CharsOk(g.Key, this.allowedchars) != null).Select(g => g.Key);
+            sw.Stop();
+            Debug.WriteLine("cleandict: " + sw.ElapsedMilliseconds);
 
+            sw.Restart();
             //lav alfabetiseret liste
             this.alfabetiseretListe = this.LavAlfabetiseretOrdbog(oklistwords);
+            var keys = this.alfabetiseretListe.Keys.ToArray();
+            sw.Stop();
+            Debug.WriteLine("Time to compute alfabetized dictionary: " + sw.ElapsedMilliseconds);
 
-            this.GetAnagrams(this.alfabetiseretListe.Keys.ToArray(), 3, new List<string>(), this.allowedchars);
+            sw.Restart();
+            this.GetAnagrams(keys, 3, new List<string>(), this.allowedchars);
+            sw.Stop();
+            Debug.WriteLine("Time to compute anagrams: " + sw.ElapsedMilliseconds);
 
             Dispatcher.Invoke(DispatcherPriority.Normal, new Action(() => { anagramgrid.ItemsSource = anagrammer.OrderByDescending(a => a.Text); }));
         }
